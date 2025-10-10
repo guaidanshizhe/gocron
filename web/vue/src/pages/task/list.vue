@@ -65,7 +65,8 @@
       background
       layout="prev, pager, next, sizes, total"
       :total="taskTotal"
-      :page-size="20"
+      :page-size="searchParams.page_size"
+      :current-page="searchParams.page"
       @size-change="changePageSize"
       @current-change="changePage"
       @prev-click="changePage"
@@ -230,12 +231,16 @@ export default {
   },
   components: {taskSidebar},
   created () {
+    this.restoreSearchParams()
     const hostId = this.$route.query.host_id
     if (hostId) {
       this.searchParams.host_id = hostId
     }
 
     this.search()
+  },
+  beforeDestroy () {
+    this.saveSearchParams()
   },
   filters: {
     formatLevel (value) {
@@ -288,7 +293,17 @@ export default {
       this.searchParams.page_size = pageSize
       this.search()
     },
+    saveSearchParams () {
+      sessionStorage.setItem('taskSearchParams', JSON.stringify(this.searchParams))
+    },
+    restoreSearchParams () {
+      const saved = sessionStorage.getItem('taskSearchParams')
+      if (saved) {
+        this.searchParams = JSON.parse(saved)
+      }
+    },
     search (callback = null) {
+      this.saveSearchParams()
       taskService.list(this.searchParams, (tasks, hosts) => {
         this.tasks = tasks.data
         this.taskTotal = tasks.total
