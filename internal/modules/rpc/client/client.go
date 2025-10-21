@@ -47,11 +47,18 @@ func Exec(ip string, port int, taskReq *pb.TaskRequest) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if taskReq.Timeout <= 0 || taskReq.Timeout > 86400 {
-		taskReq.Timeout = 86400
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if taskReq.Timeout <= 0 {
+		// 不限制超时
+		ctx, cancel = context.WithCancel(context.Background())
+	} else {
+		if taskReq.Timeout > 86400 {
+			taskReq.Timeout = 86400
+		}
+		timeout := time.Duration(taskReq.Timeout) * time.Second
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
 	}
-	timeout := time.Duration(taskReq.Timeout) * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	taskUniqueKey := generateTaskUniqueKey(ip, port, taskReq.Id)
